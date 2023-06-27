@@ -2,15 +2,15 @@
 
 ## Description
 
-This GitHub Action provisions an ALB listener rule for an Elastic Load Balancer (ELB) by creating a new rule or checking if it already exists. It ensures that the specified hostname is associated with the ALB listener rule, allowing traffic to be forwarded to the specified target group.
+This GitHub Action provisions an ALB listener rule for an Elastic Load Balancer (ELB). It checks if the rule already exists and creates a new rule if it doesn't. The action ensures that the specified hostname is associated with the ALB listener rule and forwards traffic to the specified target group.
 
 ## Inputs
 
-| Name                  | Description                                       | Required | Default                    |
-| --------------------- | ------------------------------------------------- | -------- | -------------------------- |
-| `elbName`             | The name of the Elastic Load Balancer (ELB).      | ✔        |                            |
-| `elbListenerHostname` | The hostname for the ALB listener rule.           | ✔        |                            |
-| `targetGroupArn`      | The ARN of the target group for traffic forwarding | ✔        |                            |
+| Name                  | Description                                                  | Required | Default                  |
+| --------------------- | ------------------------------------------------------------ | -------- | ------------------------ |
+| `elbName`             | The name of the Elastic Load Balancer (ELB).                | ✔        | `ecs-modular-monolith`   |
+| `elbListenerHostname` | The hostname for the ALB listener rule.                      | ✔        |                          |
+| `targetGroupArn`      | The ARN of the target group to which the traffic should be forwarded. | ✔        |                          |
 
 ## Outputs
 
