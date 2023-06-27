@@ -1,0 +1,69 @@
+name: provision-alb-listener-rule
+description: Provision ALB Listener Rule
+author: DevOps Team
+
+inputs:
+  elbName:
+    description: 'The name of the Elastic Load Balancer (ELB)'
+    required: true
+    default: 'ecs-modular-monolith'
+  elbListenerHostname:
+    description: 'The hostname for the ALB listener rule'
+    required: true
+  targetGroupArn:
+    description: 'The ARN of the target group to which the traffic should be forwarded'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Provision ALB Listener Rule
+      shell: bash
+      run: |
+        # Set hostname
+        HOSTNAME="${{ inputs.elbListenerHostname }}.dev.caring.com"
+
+        # Get ALB ARN and DNS name
+        ALB=$(aws elbv2 describe-load-balancers --names "${{ inputs.elbName }}" --query "LoadBalancers[0]") # candidate to simplify later
+        ALB_ARN=$(echo $ALB | jq -r '.LoadBalancerArn')
+        ELB_DNS_NAME=$(echo $ALB | jq -r '.DNSName')
+
+        # Set ELB_DNS_NAME environment variable
+        echo "export ELB_DNS_NAME=$ELB_DNS_NAME" >> $GITHUB_ENV
+
+        # Get listener ARN and existing rules
+        LISTENER=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query "Listeners[1]")
+        LISTENER_ARN=$(echo $LISTENER | jq -r '.ListenerArn')
+        RULES=$(aws elbv2 describe-rules --listener-arn $LISTENER_ARN)
+
+        # Check if rule already exists
+        RULE_EXISTS=$(echo "$RULES" | jq -r --arg hostname "$HOSTNAME" '.Rules[].Conditions[] | select(.Field == "host-header") | .Values[] | select(. == $hostname) | length > 0')
+        if [ "$RULE_EXISTS" == "true" ]; then
+            echo "ALB listener rule already exists"
+        else
+            # Calculate new rule priority
+            NEW_RULE_PRIORITY=$(echo "$RULES" | jq -r '.Rules[].Priority' | sort -n | tail -1 | awk '{print $1 + 1}')
+
+            # Create new listener rule
+            NEW_RULE=$(aws elbv2 create-rule \
+                --listener-arn $LISTENER_ARN \
+                --priority $NEW_RULE_PRIORITY \
+                --conditions "Field=host-header,Values=$HOSTNAME" \
+                --actions "Type=forward,TargetGroupArn=${{ inputs.targetGroupArn }}")
+
+            # Get the new rule ARN
+            NEW_RULE_ARN=$(echo $NEW_RULE | jq -r '.Rules[].RuleArn')
+
+            # Validate that the rule was created
+            if [ -z "$NEW_RULE_ARN" ]; then
+                echo "Failed to create ALB listener rule"
+                exit 1
+            else
+                echo "ALB listener rule was created successfully"
+            fi
+        fi
+
+        # List existing rules
+        echo "Existing ALB listener rules:"
+        echo "$RULES" | jq -r '.Rules[] | "Priority: \(.Priority), Conditions: \(.Conditions[].Values), TargetGroup: \(.Actions[].TargetGroupArn)"'
+        
