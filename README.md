@@ -29,7 +29,7 @@ jobs:
 
       - name: Provision ALB Listener Rule
         id: alb-rule
-        uses: caring/provision-alb-listener-rule@v1.0.0
+        uses: caring/gh-create-elb-listener-rule@v1.0.0
         with:
           elbName: ecs-modular-monolith
           elbListenerHostname: ecs-modular-monolith
