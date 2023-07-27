@@ -27,7 +27,7 @@ runs:
         ELB_ARN=$(aws elbv2 describe-load-balancers --names "${{ inputs.elbName }}" --query "LoadBalancers[0].LoadBalancerArn" --output text)
 
         # Get listener ARN and existing rules
-        LISTENER=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query "Listeners[1]")
+        LISTENER=$(aws elbv2 describe-listeners --load-balancer-arn $ELB_ARN --query "Listeners[1]")
         LISTENER_ARN=$(echo $LISTENER | jq -r '.ListenerArn')
         RULES=$(aws elbv2 describe-rules --listener-arn $LISTENER_ARN)
 
